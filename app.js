@@ -11,7 +11,7 @@ var connection = mysql.createConnection({
     database: "tracker_db"
   });
 
-// Initiate MySQL Connection.
+
 connection.connect(function(err) {
     if (err) throw err;
     start();
@@ -27,8 +27,9 @@ function start() {
         name: "todo",
         choices: [
           "View all employees",
-          "View all employees by department",
-          "View all employees by role",
+          "View all roles",
+          "View all departments",
+          "Update employee role",
           "Add employee",
           "Add role",
           "Add department",
@@ -41,12 +42,15 @@ function start() {
         case "View all employees":
           viewEmp();
           break;
-        case "View all employees by role":
+        case "View all roles":
           viewRole();
           break;
-        case "View all employees by department":
+        case "View all departments":
           viewDept();
-          break;
+            break;
+        case "Udate employee role":
+            updateEmp();
+            break;
         case "Add employees":
           addEmp();
           break;
@@ -57,7 +61,7 @@ function start() {
           addDept();
           break;
         case "Exit":
-          exit();
+          connection.end()
           break;
       }
     })
@@ -67,26 +71,88 @@ function start() {
 }
 
 viewEmp = () => {
-    let query = 'SELECT employee.id, employee.first_name, employee.last_name, role.title, role.salary'
-    connection.query
-    console.table()
-
-    start();
+    query = `SELECT * FROM employee`;
+    connection.query(query, (err, res) => {
+      if (err) throw err;
+      console.table(res);
+        start();
+    });
 };
 
 viewRole = () => {
-
-    start();
+    query = `SELECT * FROM role`;
+    connection.query(query, (err, res) => {
+      if (err) throw err;
+      console.table(res);
+        start();
+    });
 };
 
 viewDept = () => {
-    query = `SELECT name AS "Departments" FROM department`;
+    query = `SELECT * FROM department`;
     connection.query(query, (err, res) => {
-     if (err) throw err;
-     console.table(res);
-     start();
+        if (err) throw err;
+        console.table(res);
+        start();
     });
 };
+
+updateEmp = () =>  {
+    var allEmployees = [];
+    connection.query("SELECT * FROM employee", function(err, answer) {
+      for (let i = 0; i < answer.length; i++) {
+        let employeeString =
+        answer[i].id + " " + answer[i].first_name + " " + answer[i].last_name;
+        allEmployees.push(employeeString);
+      };
+      inquirer
+        .prompt([
+          {
+            type: "list",
+            name: "updateRole",
+            message: "Select an employee to change their role",
+            choices: allEmployees
+          },
+          {
+            type: "list",
+            message: "Select a new role",
+            name: "newRole",
+            choices: [
+                'Sales Manager',
+                'Sales Rep',
+                'Chief Marketing Strategist',
+                'Marketing Analyst/Specialist',
+                'Social Media Manager',
+                'Chief Engineer',
+                'Junior Engineer'
+            ]
+        }]).then(function(answer) {
+            console.log("Updating ", answer);
+            const idUpdate = {};
+            idUpdate.id = parseInt(answer.updateRole.split(" ")[0]);
+            if (answer.newrole === 'Sales Manager') {
+              idUpdate.role_id = 2;
+            } else if (answer.newrole === 'Sales Rep') {
+              idUpdate.role_id = 3;
+            } else if (answer.newrole === 'Chief Marketing Strategist') {
+                idUpdate.role_id = 4;
+            } else if (answer.newrole === 'Marketing Analyst/Specialist') {
+                idUpdate.role_id = 5;
+            } else if (answer.newrole === 'Social Media Manager') {
+                idUpdate.role_id = 6;
+            } else if (answer.newrole === 'Chief Engineer') {
+                idUpdate.role_id = 7;
+            } else if (answer.newrole === 'Junior Engineer') {
+                idUpdate.role_id = 8;
+            }
+            connection.query(
+              "UPDATE employee SET role_id = ? WHERE id = ?",
+              [idUpdate.role_id, idUpdate.id],
+                runSearch()
+            );
+        })
+    })
+}
 
 addEmp = () => {
     inquirer
@@ -100,28 +166,48 @@ addEmp = () => {
                 message: 'What is the employees last name?',
                 name: 'last_name'
             },{
-                type: 'input',
-                message: 'What is the employees role?',
-                name: 'role'
+                type: 'list',
+                message: `What is the employee's role?`,
+                name: 'role',
+                choices: [
+                    "Sales Manager",
+                    "Sales Rep",
+                    'Chief Marketing Strategist',
+                    'Marketing Analyst/Specialist',
+                    'Social Media Manager',
+                    'Chief Engineer',
+                    'Junior Engineer'
+                ]
             },{
-                type: 'input',
-                message: 'Is this employee a manager?',
-                name: 'isManager'
-            },
-        ]).then(function(res) {
-            const first_name = res.first_name;
-            const last_name = res.last_name;
-            const role = res.role;
-            const isManager = res.isManager;
-
-            //TODO - add new employee to table
-
-            console.log('New Employee added!');
-            start();
-        }).catch(function(err) {
-            console.log(err);
-        })
+                type: 'list',
+                message: `What is their manager's id`,
+                name: 'managerID',
+                choices: [
+                    1,
+                    2,
+                    4,
+                    7,
+                ]
+            }
+        ]).then(function (res) {
+            query = `INSERT INTO employee SET ?`;
+            connection.query(
+              query,
+              {
+                first_name: res.firstname,
+                last_name: res.lastname,
+                role_id: res.role,
+                manager_id: res.managerID,
+              },
+              (err) => {
+                if (err) throw err;
+                console.log('Added new employee!');
+                runSearch();
+             }
+        );
+    })
 };
+
 
 addRole = () => {
     inquirer
@@ -136,27 +222,31 @@ addRole = () => {
                 name: 'roleSalary'
             },{
                 type: 'list',
-                message: 'In what department is this new role?',
+                message: 'What is the new department ID?',
                 name: 'roleDept',
                 choices: [
-                    'Executive',
-                    'Sales',
-                    'Marketing',
-                    'Engineering'
+                    1,
+                    2,
+                    3,
+                    4
                 ]
             }
-        ]).then(function(res) {
-            const role = res.role;
-            const roleSalary = res.roleSalary;
-            const roleDept = res.roleDept;
-
-            //TODO -- add new role to table
-
-            console.log('New Role added!');
-            start();
-        }).catch(function(err) {
-            console.log(err);
-        })
+        ]).then(function (res) {
+            query = `INSERT INTO role SET ?`;
+            connection.query(
+              query,
+              {
+                title: res.role,
+                salary: res.roleSalary,
+                department_id: res.roleDept,
+              },
+              (err) => {
+                if (err) throw err;
+                console.log('Added new role!');
+                runSearch();
+            }
+        );
+    })
 };
 
 addDept = () => {
@@ -168,17 +258,17 @@ addDept = () => {
                 name: 'dept'
             }
         ]).then(function(res) {
-            const dept = res.dept;
-
-            //TODO -- add new dept to table
-
-            console.log('New Department added!')
-            start();
-        }).catch(function(err) {
-            console.log(err);
-        })
-};
-
-exit = () => {
-
+            query = `INSERT INTO department SET ?`;
+            connection.query(
+              query,
+              {
+                name: res.dept,
+              },
+              (err) => {
+                if (err) throw err;
+                console.log('Added new department!');
+                runSearch();
+              }
+        );
+    })
 };
