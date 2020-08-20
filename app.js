@@ -48,10 +48,10 @@ function start() {
 				case "View all departments":
 					viewDept();
 						break;
-				case "Udate employee role":
+				case "Update employee role":
 					updateEmp();
 					break;
-				case "Add employees":
+				case "Add employee":
 					addEmp();
 					break;
 				case "Add role":
@@ -62,7 +62,9 @@ function start() {
 					break;
 				case "Exit":
 					connection.end()
-					break;
+                    break;
+                default: console.log('Something went wrong!  Try again.');
+                    break;
 			}
 		})
 		.catch((err) => {
@@ -98,14 +100,16 @@ viewDept = () => {
 };
 
 updateEmp = () =>  {
-		var allEmployees = [];
+        var allEmployees = [];
+        
 		connection.query("SELECT * FROM employee", function(err, answer) {
 			if (err) throw err;
 
 			for (var i = 0; i < answer.length; i++) {
 				let employeeString = answer[i].id + " " + answer[i].first_name + " " + answer[i].last_name;
-				allEmployees.push(employeeString);
-			};
+                allEmployees.push(employeeString);
+                
+            };
 
 			inquirer
 				.prompt([
@@ -195,13 +199,31 @@ addEmp = () => {
 								]
 						}
 				]).then(function (res) {
-						query = "INSERT INTO employee SET ?";
+                        query = "INSERT INTO employee SET ?";
+                        let role = 0;
+                        
+                        switch (res.role) {
+                            case "Sales Manager":
+                            case "Sales Rep":
+                                role = 2;
+                                break;
+
+                            case "Chief Marketing Strategist":
+                            case "Marketing Analyst/Specialist":
+                            case "Social Media Manager":
+                                role = 3;
+                                break;
+                            case "Chief Engineer":
+                            case "Junior Engineer":
+                                role = 4;
+                                break;
+                        }
 						connection.query(
 							query,
 							{
-								first_name: res.firstname,
-								last_name: res.lastname,
-								role_id: res.role,
+								first_name: res.first_name,
+								last_name: res.last_name,
+								role_id: role,
 								manager_id: res.managerID,
 							},
 							(err) => {

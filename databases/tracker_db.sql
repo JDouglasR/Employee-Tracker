@@ -44,7 +44,7 @@ VALUES
     (CEO, 200000.00, 1),
     (Sales_Manager, 100000.00, 2),
     (Sales_Rep, 80000.00, 2),
-    (Chief_Marketing_Stradegist, 120000.00, 3),
+    (Chief_Marketing_Strategist, 120000.00, 3),
     (Marketing_Analyst/Specialist, 90000.00, 3),
     (Social_Media_Manager, 65000.00, 3),
     (Chief_Engineer, 120000.00, 4),
